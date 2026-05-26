@@ -1,0 +1,19 @@
+﻿,,,
+Parámetro,Símbolo,Valor,Unidad
+Masa total,m,453.592,kg
+CdA,CdA,0.3667,m²
+Cd,,0.19,
+Area Frontal,,1.93,m^2
+Crr,Crr,0.005,-
+Densidad aire,ρ,1.225,kg/m³
+Gravedad,g,9.81,m/s²
+Eficiencia drivetrain,η,0.95,%
+Capacidad batería,E_batt,5400,Wh
+Área panel,A_panel,5.797,m²
+Eficiencia panel,η_panel,0.255,%
+,,,
+,,,
+,,,
+,,,
+,,,
+,,,
