@@ -7,21 +7,21 @@ import numpy as np
 # PHYSICAL VEHICLE VARIABLES
 @dataclass
 class VehicleConfig:
-    mass: float = 268.0                     # kg
-    solar_array_area: float = 4.0           # m²
-    drag_coefficient: float = 0.16          # Cd
-    rolling_resistance: float = 0.0085      # Cr
-    frontal_area: float = 1.03              # A (m²)
-    energy_cap: float = 17_800_000.0        # Joules
-    n_motor: float = 0.96                   # Efficiency
-    n_elec: float = 0.20                    # Efficiency
-    p_aux: float = 13.0                     # W
+    mass: float = 453.592                   # kg
+    solar_array_area: float = 5.797         # m²
+    drag_coefficient: float = 0.19          # Cd
+    rolling_resistance: float = 0.005       # Cr
+    frontal_area: float = 1.93              # A (m²)
+    energy_cap: float = 19440000            # Joules
+    n_motor: float = 0.95                   # Efficiency
+    n_elec: float = 0.22                    # Efficiency
+    p_aux: float = 14.14                    # W
 
 # INITIAL ENVIRONMENT READINGS
 @dataclass
 class EnvironmentState:
-    air_density: float               # kg/m³
-    ghi: float                       # W/m²
+    air_density: float                      # kg/m³
+    ghi: float                              # W/m²
     # You can add initial wind speed, temp, etc. here
 
 class EnergyManager:
@@ -82,7 +82,7 @@ class EnergyManager:
         result = 0.5 * self.car.mass * ((v_curr**2) - (v_prev**2))
         return result
     
-    #-----------STATE OF CHARGE-----------
+    #-----------STATE OF CHARGE----------- 
     def state_of_charge(self, alpha_start):
         # Convert deques to numpy arrays for element-wise math
         p_batt_arr = np.array(self.p_battery_stack)
@@ -130,11 +130,35 @@ class EnergyManager:
 
         # 2. Objective Function: Maximize final Expected SoC (SciPy only minimizes, so we return negative SoC)
         def objective(speeds):
-            # NOTE: In a real implementation, you would loop through the speeds, 
-            # calculate expected P_loss, P_sun, and tally the expected SoC here.
-            # For brevity in the optimizer setup, we assume a placeholder calculation:
-            final_soc = self.state_of_charge(alpha_start) # (Replace with iterative expected SoC calculation)
-            return -final_soc 
+            # Start with your current battery percentage
+            predicted_soc = alpha_start
+            
+            # Loop through every upcoming interval on the route
+            for i in range(len(speeds)):
+                v_guess = speeds[i]
+                dist = route_distances[i]
+                theta = route_inclines[i]
+                ghi_guess = expected_ghi_array[i]
+                
+                # 1. Calculate time spent on this segment
+                t_k = dist / v_guess
+                
+                # 2. Calculate the expected physics FOR THIS GUESS
+                # (Assuming 0 wind speed for future prediction)
+                F1 = self.aerodynamic_drag(v_guess, vw=0) 
+                F2 = self.rolling_resistance(theta)
+                F3 = self.grav_force(theta)
+                
+                p_loss = self.power_loss(v_guess, F1, F2, F3)
+                p_sun = ghi_guess * self.car.n_elec * self.car.solar_array_area
+                p_batt = p_sun - p_loss
+                
+                # 3. Tally the expected energy flow into the predicted SoC
+                segment_energy = p_batt * t_k
+                predicted_soc += (segment_energy / self.car.energy_cap) * 100.0
+                
+                # Return the negative predicted SoC so SciPy can minimize it
+            return -predicted_soc 
 
         # 3. Constraints Setup
         constraints = []
@@ -153,15 +177,51 @@ class EnergyManager:
         constraints.append({'type': 'ineq', 'fun': battery_constraint})
 
         # Constraint Sigma (Motor Thermal Limits): P_loss between -5000W and 5000W
-        # We define a helper that ensures max/min power for every interval stays in bounds
         def motor_power_upper_limit(speeds):
-            # Calculate power loss for all speeds (pseudo-code)
-            # max_power = max([self.power_loss(v, ...) for v in speeds])
-            return 5000.0 - 0 # Replace 0 with calculated max_power
+            p_losses = []
             
+            # Loop through the route segments and calculate power loss for each guessed speed
+            for i in range(len(speeds)):
+                v_guess = speeds[i]
+                theta = route_inclines[i]
+                
+                # Calculate physical forces (Assuming 0 wind speed for future prediction)
+                F1 = self.aerodynamic_drag(v_guess, vw=0)
+                F2 = self.rolling_resistance(theta)
+                F3 = self.grav_force(theta)
+                
+                # Calculate the power loss for this specific segment
+                segment_p_loss = self.power_loss(v_guess, F1, F2, F3)
+                p_losses.append(segment_p_loss)
+                
+            # Find the highest power draw across the entire route guess
+            max_power = max(p_losses)
+            
+            # The returned value MUST be >= 0 to be valid.
+            
+            return 5000.0 - max_power
+
         def motor_power_lower_limit(speeds):
-            # min_power = min([self.power_loss(v, ...) for v in speeds])
-            return 0 - (-5000.0) # Replace 0 with calculated min_power
+            p_losses = []
+            
+            # Loop through the route segments
+            for i in range(len(speeds)):
+                v_guess = speeds[i]
+                theta = route_inclines[i]
+                
+                F1 = self.aerodynamic_drag(v_guess, vw=0)
+                F2 = self.rolling_resistance(theta)
+                F3 = self.grav_force(theta)
+                
+                segment_p_loss = self.power_loss(v_guess, F1, F2, F3)
+                p_losses.append(segment_p_loss)
+                
+            # Find the lowest power draw (usually during steep regenerative braking)
+            min_power = min(p_losses)
+            
+            # Example A: min_power is -3000W -> Returns 2000.0 (Valid)
+            # Example B: min_power is -6000W -> Returns -1000.0 (Invalid)
+            return min_power - (-5000.0)
             
         constraints.append({'type': 'ineq', 'fun': motor_power_upper_limit})
         constraints.append({'type': 'ineq', 'fun': motor_power_lower_limit})

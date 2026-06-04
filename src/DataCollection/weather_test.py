@@ -73,7 +73,7 @@ if __name__ == "__main__":
         "Cd"        :  0.19,
         "Apv"       :  5.797,
         'n_motor'   :  0.95,
-        "n_elec"    :   
-
+        "n_elec"    :  0.22,
+        
     }
     

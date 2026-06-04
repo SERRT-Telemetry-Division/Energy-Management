@@ -1,0 +1,29 @@
+1. The Optimization Engine (SLSQP)
+
+The function utilizes a Sequential Quadratic Programming (SQP) algorithm. Specifically, it calls SciPy's minimize function using the SLSQP (Sequential Least SQuares Programming) method.
+
+Instead of analytically solving for one perfect number, the solver loops. It generates a "guess" array of speeds for your route, evaluates the physics (power loss, solar gain, battery drain), adjusts the speeds, and guesses again. It does this thousands of times until it mathematically "walks" to the most efficient speed profile.
+
+2. The Objective Function (The Goal)
+
+Every optimizer needs a singular goal to target. In this case, the objective is to maximize the final expected State of Charge (SoC).
+maximize: α
+
+Where α represents the expected State of Charge function. Because SciPy's library is hardcoded to minimize equations, the logic simply returns the negative SoC (-final_soc). By minimizing a negative number, it forces the algorithm to find the maximum possible battery percentage.
+3. The Constraints (The Rules)
+
+If the optimizer only cared about saving battery, it would tell the driver to drive at 0 m/s. To make the output realistic, the solver filters its guesses through four strict physical and race limits. Any speed array that violates these rules is immediately thrown out:
+
+    Time (γ): The total real driving time must fall within a 300-second window of the Allowed Driving Time to ensure the car arrives on schedule.
+
+    Battery Safety (β): The SoC at the end of the day must be greater than or equal to the minimum energy required to start the next day.
+
+    Motor Thermal Limits (σ): The nominal motor power required must stay strictly between -5000 W and 5000 W to prevent the hardware from overheating.
+
+    Safe Speed Bounds (τ): The speed of the vehicle must be maintained at a safe limit that also provides enough airflow to cool the motor, specifically bounded between 11.11 m/s (40 km/h) and 33.33 m/s (120 km/h).
+
+4. The Output
+
+Once the solver finishes iterating, it outputs result.x. This is the mathematically perfect array of speeds corresponding to each route interval. By feeding the first value of this array to your driver's dashboard, you give them the exact target speed to maintain to follow the optimal SoC curve.
+
+To ensure this array matches what the driver physically experiences, are you planning to divide the route into discrete intervals based on time (e.g., calculating a new speed every 60 seconds) or physical distance markers (e.g., calculating a new speed every kilometer)?
