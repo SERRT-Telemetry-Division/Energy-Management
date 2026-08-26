@@ -16,12 +16,17 @@ class VehicleConfig:
     n_motor: float = 0.95                   # Efficiency
     n_elec: float = 0.22                    # Efficiency
     p_aux: float = 14.14                    # W
+    alpha_start = 0.4                       # %/100
+    orientation = 0                         # deg
 
 # INITIAL ENVIRONMENT READINGS
 @dataclass
 class EnvironmentState:
     air_density: float                      # kg/m³
     ghi: float                              # W/m²
+    vw: float                               # m/s
+    wind_dir: float                         # deg
+    
     # You can add initial wind speed, temp, etc. here
 
 class EnergyManager:
@@ -35,11 +40,49 @@ class EnergyManager:
         self.acc_energy_stack = deque()    
         self.p_battery_stack = deque()     
         self.t_k_stack = deque()
+        self.soc = deque()
         
     #-----------MECHANICAL FORCES-----------
     # Notice how we only pass dynamic variables now; constants are pulled from self.car
-    def aerodynamic_drag(self, v, vw):
-        return 0.5 * self.env.air_density * self.car.frontal_area * self.car.drag_coefficient * ((v + vw)**2)
+    def aerodynamic_drag(self, v_guess, heading_angle, wind_speed, wind_direction_from, rho, frontal_area, cd_base):
+        """
+        Calculates the actual aerodynamic drag force dynamically based on the 
+        optimizer's current speed guess and environmental conditions.
+        """
+        # Convert API and GPS angles to radians for numpy calculations
+        theta_c = np.radians(heading_angle)
+        theta_w = np.radians(wind_direction_from)
+        
+        # Shift the axis: Find wind angle relative to the car's nose
+        # Because meteorological wind direction is where the wind is coming FROM
+        # If wind is from North (0) and car is heading North (0), relative angle is 0 (direct headwind).
+        theta_rel = theta_w - theta_c
+        
+        # Decompose the environmental wind into headwind and crosswind components
+        # This is the "cosine" approach you mentioned, plus the critical sine component.
+        v_wind_head = wind_speed * np.cos(theta_rel)
+        v_wind_cross = wind_speed * np.sin(theta_rel)
+        
+        # Calculate apparent wind components using the optimizer's CURRENT speed guess
+        # The car's forward motion creates its own relative headwind.
+        v_app_head = v_guess + v_wind_head
+        v_app_cross = v_wind_cross
+        
+        # Total apparent wind magnitude squared (required for the drag equation)
+        # Notice how a strong crosswind heavily impacts this total magnitude.
+        v_app_sq = (v_app_head**2) + (v_app_cross**2)
+        
+        # Yaw angle calculation
+        # To dynamically alter your Cd if the team has wind tunnel data.
+        yaw_angle = np.abs(np.degrees(np.arctan2(v_app_cross, v_app_head)))
+        
+        # Placeholder for yaw-based Cd adjustment
+        # cd_dynamic = cd_base * (1 + 0.015 * yaw_angle) 
+        
+        # Final Drag Force calculation using the true apparent wind
+        drag_force = 0.5 * rho * cd_base * frontal_area * v_app_sq
+        
+        return drag_force
     
     def rolling_resistance(self, theta, g=9.81):
         return self.car.rolling_resistance * self.car.mass * g * math.cos(theta)
@@ -80,6 +123,8 @@ class EnergyManager:
          
         # Calculate Energy (Corrected square physics and variable access)
         result = 0.5 * self.car.mass * ((v_curr**2) - (v_prev**2))
+
+        self.acc_energy.append(result)
         return result
     
     #-----------STATE OF CHARGE----------- 
@@ -107,7 +152,7 @@ class EnergyManager:
                      Example: [(0.2, 200), (0.5, 500), (0.3, 800)]
         """
         # Calculate the expected GHI based on the Probability Mass Function (PMF)
-        expected_ghi = sum(probability * ghi for probability, ghi in ghi_pmf)
+        expected_ghi = np.sum(probability * ghi for probability, ghi in ghi_pmf)
         
         # Calculate expected solar power using the expected GHI
         return expected_ghi * self.car.n_elec * self.car.solar_array_area
@@ -118,17 +163,28 @@ class EnergyManager:
         """
         return prev_e_batt + (current_e_sun - p_loss)
     
+
     #-----------SPEED OPTIMIZATION (SQP)-----------
-    def optimize_route_speeds(self, route_distances, route_inclines, expected_ghi_array, alpha_start, target_alpha_end, allowed_driving_time):
+    def optimize_route_speeds(
+            self, 
+            route_distances, 
+            route_inclines, 
+            expected_ghi_array, 
+            alpha_start, 
+            target_alpha_end, 
+            allowed_driving_time,
+            car_rotation_per_section,
+            wind_speed
+        ):
         """
         Calculates the optimal speed vector for a given route using SQP.
         """
         num_intervals = len(route_distances)
         
-        # 1. Initial Guess: Assume we drive at a safe middle speed (20 m/s) for the whole route
+        # Initial Guess: Assume we drive at a safe middle speed (20 m/s) for the whole route
         initial_speeds = np.full(num_intervals, 20.0) 
 
-        # 2. Objective Function: Maximize final Expected SoC (SciPy only minimizes, so we return negative SoC)
+        # Objective Function: Maximize final Expected SoC (SciPy only minimizes, so we return negative SoC)
         def objective(speeds):
             # Start with your current battery percentage
             predicted_soc = alpha_start
@@ -140,12 +196,20 @@ class EnergyManager:
                 theta = route_inclines[i]
                 ghi_guess = expected_ghi_array[i]
                 
-                # 1. Calculate time spent on this segment
+                # Calculate time spent on this segment
                 t_k = dist / v_guess
                 
-                # 2. Calculate the expected physics FOR THIS GUESS
+                # Calculate the expected physics FOR THIS GUESS
                 # (Assuming 0 wind speed for future prediction)
-                F1 = self.aerodynamic_drag(v_guess, vw=0) 
+                F1 = self.aerodynamic_drag(
+                    v_guess, 
+                    car_rotation_per_section[i], 
+                    wind_speed,                           # Gathered from weather API
+                    car_rotation_per_section[i]+90,       # Gathered from weather API
+                    1.225, # air density
+                    1.93,  # frontal area
+                    0.19   # base drag coefficient
+                ) 
                 F2 = self.rolling_resistance(theta)
                 F3 = self.grav_force(theta)
                 
@@ -153,14 +217,19 @@ class EnergyManager:
                 p_sun = ghi_guess * self.car.n_elec * self.car.solar_array_area
                 p_batt = p_sun - p_loss
                 
-                # 3. Tally the expected energy flow into the predicted SoC
-                segment_energy = p_batt * t_k
-                predicted_soc += (segment_energy / self.car.energy_cap) * 100.0
+                # Tally the expected energy flow into the predicted SoC
+                segment_energy_joules = p_batt * t_k
+                segment_energy_wh = segment_energy_joules / 3600.0  # Convert to Watt-hours
+                predicted_soc += (segment_energy_wh / self.car.energy_cap) * 100.0
                 
                 # Return the negative predicted SoC so SciPy can minimize it
+
+                if predicted_soc > 100.0:
+                    predicted_soc = 100.0
+
             return -predicted_soc 
 
-        # 3. Constraints Setup
+        # Constraints Setup
         constraints = []
         
         # Constraint Gamma (Time Limit): Total driving time must be close to Allowed Driving Time
@@ -186,7 +255,15 @@ class EnergyManager:
                 theta = route_inclines[i]
                 
                 # Calculate physical forces (Assuming 0 wind speed for future prediction)
-                F1 = self.aerodynamic_drag(v_guess, vw=0)
+                F1 = self.aerodynamic_drag(
+                    v_guess, 
+                    car_rotation_per_section[i], 
+                    wind_speed,                           # Gathered from weather API
+                    car_rotation_per_section[i]+90,       # Gathered from weather API
+                    1.225, # air density
+                    1.93,  # frontal area
+                    0.19   # base drag coefficient
+                ) 
                 F2 = self.rolling_resistance(theta)
                 F3 = self.grav_force(theta)
                 
@@ -209,7 +286,15 @@ class EnergyManager:
                 v_guess = speeds[i]
                 theta = route_inclines[i]
                 
-                F1 = self.aerodynamic_drag(v_guess, vw=0)
+                F1 = self.aerodynamic_drag(
+                    v_guess, 
+                    car_rotation_per_section[i], 
+                    wind_speed,                           # Gathered from weather API
+                    car_rotation_per_section[i]+90,       # Gathered from weather API
+                    1.225, # air density
+                    1.93,  # frontal area
+                    0.19   # base drag coefficient
+                ) 
                 F2 = self.rolling_resistance(theta)
                 F3 = self.grav_force(theta)
                 
@@ -226,11 +311,11 @@ class EnergyManager:
         constraints.append({'type': 'ineq', 'fun': motor_power_upper_limit})
         constraints.append({'type': 'ineq', 'fun': motor_power_lower_limit})
 
-        # 4. Bounds (Constraint Tau: Speed limits)
+        # Bounds (Constraint Tau: Speed limits)
         # Speed must be between 11.11 m/s (40 km/h) and 33.33 m/s (120 km/h)
         speed_bounds = [(11.11, 33.33) for _ in range(num_intervals)]
 
-        # 5. Run the SQP Solver
+        # Run the SQP Solver
         result = minimize(
             fun=objective, 
             x0=initial_speeds, 
@@ -241,7 +326,7 @@ class EnergyManager:
         )
         
         if result.success:
-            return result.x # Returns the array of optimal speeds!
+            return result.x # Returns the array of optimal speeds
         else:
             print("Optimization failed to find a valid speed profile.")
             return initial_speeds

@@ -4,10 +4,6 @@ import numpy as np
 from collections import deque
 from EnergyManagement import EnergyManager, EnvironmentState, VehicleConfig
 
-# Assuming the classes (VehicleConfig, EnvironmentState, EnergyManager) 
-# are imported here from your main script, e.g.:
-# from your_module import VehicleConfig, EnvironmentState, EnergyManager
-
 class TestEnergyManager(unittest.TestCase):
     
     def setUp(self):
