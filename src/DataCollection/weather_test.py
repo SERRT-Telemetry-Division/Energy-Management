@@ -27,16 +27,16 @@ def get_weather(lat, lon):
         cloud_cover = current["cloud_cover"]
         rain_mm = current["precipitation"]
         wind_speed_ms = current["wind_speed_10m"]
-        ghi = current["shortwave_radiation"]
+        # ghi = current["shortwave_radiation"]
         
         # --- AIR DENSITY CALCULATION ---
-        # 1. Convert temperature from Celsius to Kelvin
+        # Convert temperature from Celsius to Kelvin
         temp_k = temp_c + 273.15
         
-        # 2. Convert pressure from hectopascals (hPa) to Pascals (Pa)
+        # Convert pressure from hectopascals (hPa) to Pascals (Pa)
         pressure_pa = pressure_hpa * 100
         
-        # 3. Apply Ideal Gas Law: rho = P / (R * T)
+        # Apply Ideal Gas Law: rho = P / (R * T)
         # R_specific for dry air is 287.05 J/(kg·K)
         R_specific = 287.05
         air_density = pressure_pa / (R_specific * temp_k)
@@ -49,14 +49,14 @@ def get_weather(lat, lon):
         print(f"Temperature:       {temp_c} °C")
         print(f"Surface Pressure:  {pressure_hpa} hPa")
         print(f"Air Density (rho): {air_density:.4f} kg/m³")
-        print(f"GHI:               {ghi:.4f} W/m²")
+        # print(f"GHI:               {ghi:.4f} W/m²")
         
         # Return as a dictionary so your main script can use these values
         return {
             "cloud_cover": cloud_cover,
             "v_w": wind_speed_ms,
             "rho": air_density,
-            "ghi": ghi,
+            # "ghi": ghi,
         }
         
     except requests.exceptions.RequestException as e:

@@ -43,49 +43,10 @@ class EnergyManager:
         self.soc = deque()
         
     #-----------MECHANICAL FORCES-----------
-    # Notice how we only pass dynamic variables now; constants are pulled from self.car
-    def aerodynamic_drag(self, v_guess, heading_angle, wind_speed, wind_direction_from, rho, frontal_area, cd_base):
-        """
-        Calculates the actual aerodynamic drag force dynamically based on the 
-        optimizer's current speed guess and environmental conditions.
-        """
-        # Convert API and GPS angles to radians for numpy calculations
-        theta_c = np.radians(heading_angle)
-        theta_w = np.radians(wind_direction_from)
-        
-        # Shift the axis: Find wind angle relative to the car's nose
-        # Because meteorological wind direction is where the wind is coming FROM
-        # If wind is from North (0) and car is heading North (0), relative angle is 0 (direct headwind).
-        theta_rel = theta_w - theta_c
-        
-        # Decompose the environmental wind into headwind and crosswind components
-        # This is the "cosine" approach you mentioned, plus the critical sine component.
-        v_wind_head = wind_speed * np.cos(theta_rel)
-        v_wind_cross = wind_speed * np.sin(theta_rel)
-        
-        # Calculate apparent wind components using the optimizer's CURRENT speed guess
-        # The car's forward motion creates its own relative headwind.
-        v_app_head = v_guess + v_wind_head
-        v_app_cross = v_wind_cross
-        
-        # Total apparent wind magnitude squared (required for the drag equation)
-        # Notice how a strong crosswind heavily impacts this total magnitude.
-        v_app_sq = (v_app_head**2) + (v_app_cross**2)
-        
-        # Yaw angle calculation
-        # To dynamically alter your Cd if the team has wind tunnel data.
-        yaw_angle = np.abs(np.degrees(np.arctan2(v_app_cross, v_app_head)))
-        
-        # Placeholder for yaw-based Cd adjustment
-        # cd_dynamic = cd_base * (1 + 0.015 * yaw_angle) 
-        
-        # Final Drag Force calculation using the true apparent wind
-        drag_force = 0.5 * rho * cd_base * frontal_area * v_app_sq
-        
-        return drag_force
+    # Notice how we only pass dynamic variables now; constants are pulled from self.ca
     
     def rolling_resistance(self, theta, g=9.81):
-        return self.car.rolling_resistance * self.car.mass * g * math.cos(theta)
+        return self.car.rolling_resistance * self.car.mass * g #* math.cos(theta)
     
     def grav_force(self, theta, g=9.81):
         return self.car.mass * g * math.sin(theta)
