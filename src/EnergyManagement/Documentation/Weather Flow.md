@@ -33,7 +33,9 @@
 
 
 ## 1. Summary:
-This document will be describing the weather data management and how it is used for the EMS (Energy Management System). In addition the document will explain the logic behind the implementation.
+This document describes the weather data management and how it is used for the EMS (Energy Management System). In addition the document explains the logic behind the implementation.
+
+Part of the development of the EMS will be done using Open-Meteo. This is an open-source weather API that provides the environmental data of a specific geographic location. The API is used to retrieve current environmental variables such as temperature, atmospheric pressure, cloud cover, precipitation, wind speed, and solar radiation. These values are then processed by the weather_test.py file to calculate additional variables required by the EMS.
 
 
 ## 2. Code Files:
