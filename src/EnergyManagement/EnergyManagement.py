@@ -43,10 +43,23 @@ class EnergyManager:
         self.soc = deque()
         
     #-----------MECHANICAL FORCES-----------
-    # Notice how we only pass dynamic variables now; constants are pulled from self.ca
+    def aerodynamic_drag(self, V):
+        """
+        Calculates aerodynamic drag.
+
+        Args:
+            rho (float) : Air density
+            V (float) : Car speed + Wind speed opposite to the car (calculated beforehand)
+            Cd (float) : Car's drag coefficient
+            A (float) : Frontal car area
+
+        Returns:
+            Float : Result of calculations.
+        """
+        return (1/2)*self.env.air_density*self.car.drag_coefficient* (V**2)
     
-    def rolling_resistance(self, theta, g=9.81):
-        return self.car.rolling_resistance * self.car.mass * g #* math.cos(theta)
+    def rolling_resistance(self, theta=0, g=9.81):
+        return self.car.rolling_resistance * self.car.mass * g * math.cos(theta)
     
     def grav_force(self, theta, g=9.81):
         return self.car.mass * g * math.sin(theta)
@@ -58,9 +71,9 @@ class EnergyManager:
     def sun_generated_power(self):
         return self.env.ghi * self.car.n_elec * self.car.solar_array_area
     
-    def net_battery_energy_flow(self, vk, v, vw, theta):
+    def net_battery_energy_flow(self, vk, v, theta):
         # Calculate forces based on current dynamic inputs
-        F1 = self.aerodynamic_drag(v, vw)
+        F1 = self.aerodynamic_drag(v)
         F2 = self.rolling_resistance(theta)
         F3 = self.grav_force(theta)
         
