@@ -1,4 +1,20 @@
 import requests
+import time
+from dataclasses import dataclass
+import math
+import numpy as np
+
+# INITIAL ENVIRONMENT READINGS
+@dataclass
+class EnvironmentState:
+    air_density: float                      # Air density in kg/m³
+    ghi: float                              # Global Horizontal Irradiance (W/m²)
+    vw: float                               # Wind Speed (m/s)
+    wind_dir: float                         # Wind direction (deg)
+    
+    # You can add initial wind speed, temp, etc. here
+
+# TODO: Map the data collected from the get_weather function to a variable in the EnvironmentState dataclass
 
 def get_weather(lat, lon):
 

@@ -1,3 +1,8 @@
+"""
+SIMPLE DEMO FOR THE PIT CREW DISPLAY
+
+"""
+
 import pandas as pd
 import streamlit as st
 
@@ -70,12 +75,12 @@ with tab_live:
             st.caption("State of charge")
             st.progress(car_data["soc"] / 100)
 
-            st.map(
-                pd.DataFrame(
-                    {"lat": [car_data["latitude"]], "lon": [car_data["longitude"]]}
-                ),
-                zoom=8,
-            )
+            # st.map(
+            #     pd.DataFrame(
+            #         {"lat": [car_data["latitude"]], "lon": [car_data["longitude"]]}
+            #     ),
+            #     zoom=8,
+            # )
         else:
             st.subheader("Waiting for Connection...")
 
