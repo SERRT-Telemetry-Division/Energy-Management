@@ -16,8 +16,8 @@ class VehicleConfig:
     n_motor: float = 0.95                   # Motor Efficiency
     n_elec: float = 0.22                    # Battery Efficiency
     p_aux: float = 14.14                    # Perdida de power auxiliar (W)
-    alpha_start = 0.4                       # %/100
-    orientation = 0                         # deg
+    alpha_start = 0.4                       # Starting energy stored in battery 
+    orientation = 0                         # Car orientation relative to cardinal direction.
 
 
 def get_speed():
