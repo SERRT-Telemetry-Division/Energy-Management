@@ -1,0 +1,139 @@
+/* ============================================================
+   SECTION COLORS — SOLAR CAR TEAM THEME
+   Outer boxes: deep, dark tint of the section color
+   Inner metric cards: brighter, more saturated version
+   Append this to styles/MainDisplaystyle.css
+   ============================================================ */
+
+
+/* ============================================================
+   OUTER SECTION BOXES
+   ============================================================ */
+
+/* LOCATION — RED */
+.st-key-location_section {
+    background: linear-gradient(160deg, #3A171B 0%, #230E11 100%) !important;
+    border: 1px solid rgba(217, 35, 45, 0.55) !important;
+    border-radius: 16px !important;
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.30),
+        0 0 0 1px rgba(217, 35, 45, 0.10) !important;
+}
+
+/* WEATHER — YELLOW */
+.st-key-weather_section {
+    background: linear-gradient(160deg, #3A3113 0%, #231E0B 100%) !important;
+    border: 1px solid rgba(252, 224, 83, 0.50) !important;
+    border-radius: 16px !important;
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.30),
+        0 0 0 1px rgba(252, 224, 83, 0.08) !important;
+}
+
+/* CAR DATA — TEAL */
+.st-key-car_section {
+    background: linear-gradient(160deg, #123640 0%, #0A2028 100%) !important;
+    border: 1px solid rgba(0, 155, 181, 0.55) !important;
+    border-radius: 16px !important;
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.30),
+        0 0 0 1px rgba(0, 155, 181, 0.10) !important;
+}
+
+/* Section titles pick up the section color */
+.st-key-location_section h3 {
+    color: #FF8A91 !important;
+}
+
+.st-key-weather_section h3 {
+    color: #FCE053 !important;
+}
+
+.st-key-car_section h3 {
+    color: #5CE0F2 !important;
+}
+
+
+/* ============================================================
+   INNER METRIC CARDS (brighter than the outer box)
+   ============================================================ */
+
+/* LOCATION — RED */
+.st-key-location_section [data-testid="stMetric"] {
+    background: linear-gradient(145deg, #B5343F, #8A2630) !important;
+    background-color: #B5343F !important;
+    border: 1px solid #FF5A63 !important;
+    border-radius: 12px !important;
+    padding: 14px 16px !important;
+    min-height: 95px;
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+/* WEATHER — YELLOW */
+.st-key-weather_section [data-testid="stMetric"] {
+    background: linear-gradient(145deg, #A38A1E, #7A6716) !important;
+    background-color: #A38A1E !important;
+    border: 1px solid #FCE053 !important;
+    border-radius: 12px !important;
+    padding: 14px 16px !important;
+    min-height: 95px;
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+/* CAR DATA — TEAL */
+.st-key-car_section [data-testid="stMetric"] {
+    background: linear-gradient(145deg, #1D93AB, #166E80) !important;
+    background-color: #1D93AB !important;
+    border: 1px solid #3FD8EE !important;
+    border-radius: 12px !important;
+    padding: 14px 16px !important;
+    min-height: 95px;
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+/* METRIC LABELS */
+.st-key-location_section [data-testid="stMetricLabel"],
+.st-key-location_section [data-testid="stMetricLabel"] p {
+    color: #FFE1E3 !important;
+}
+
+.st-key-weather_section [data-testid="stMetricLabel"],
+.st-key-weather_section [data-testid="stMetricLabel"] p {
+    color: #FFF6C2 !important;
+}
+
+.st-key-car_section [data-testid="stMetricLabel"],
+.st-key-car_section [data-testid="stMetricLabel"] p {
+    color: #D4F7FC !important;
+}
+
+/* METRIC VALUES */
+.st-key-location_section [data-testid="stMetricValue"],
+.st-key-weather_section [data-testid="stMetricValue"],
+.st-key-car_section [data-testid="stMetricValue"] {
+    color: #FFFFFF !important;
+    font-weight: 750 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* HOVER EFFECTS */
+.st-key-location_section [data-testid="stMetric"]:hover {
+    border-color: #FFA0A5 !important;
+    box-shadow: 0 6px 18px rgba(255, 90, 99, 0.35) !important;
+}
+
+.st-key-weather_section [data-testid="stMetric"]:hover {
+    border-color: #FFF08A !important;
+    box-shadow: 0 6px 18px rgba(252, 224, 83, 0.30) !important;
+}
+
+.st-key-car_section [data-testid="stMetric"]:hover {
+    border-color: #8BEAF7 !important;
+    box-shadow: 0 6px 18px rgba(63, 216, 238, 0.32) !important;
+}
