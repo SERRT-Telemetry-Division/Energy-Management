@@ -5,3 +5,8 @@ matplotlib
 pillow
 pandas
 paho-mqtt
+
+streamlit 
+plotly 
+streamlit-geolocation 
+streamlit-autorefresh
