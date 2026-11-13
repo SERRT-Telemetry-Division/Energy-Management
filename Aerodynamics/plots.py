@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from aerodynamics import aerodynamic_drag
+from Aerodynamics.aerodynamics import aerodynamic_drag
 
 # Plot colors (categorical order, never cycled) and recessive ink for axes/text
 PLOT_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100']
